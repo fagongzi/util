@@ -21,5 +21,10 @@ func (u *Uint32) Get() uint32 {
 
 // Incr incr atomic uint32
 func (u *Uint32) Incr() uint32 {
-	return atomic.AddUint32(&u.value, 1)
+	return u.Add(1)
+}
+
+// Add add atomic int32
+func (u *Uint32) Add(value uint32) uint32 {
+	return atomic.AddUint32(&u.value, value)
 }

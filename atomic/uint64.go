@@ -21,5 +21,10 @@ func (u *Uint64) Get() uint64 {
 
 // Incr incr atomic uint64
 func (u *Uint64) Incr() uint64 {
-	return atomic.AddUint64(&u.value, 1)
+	return u.Add(1)
+}
+
+// Add add atomic uint64
+func (u *Uint64) Add(value uint64) uint64 {
+	return atomic.AddUint64(&u.value, value)
 }
