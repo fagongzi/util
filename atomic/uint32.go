@@ -18,3 +18,8 @@ func (u *Uint32) Set(value uint32) {
 func (u *Uint32) Get() uint32 {
 	return atomic.LoadUint32(&u.value)
 }
+
+// Incr incr atomic uint32
+func (u *Uint32) Incr() uint32 {
+	return atomic.AddUint32(&u.value, 1)
+}

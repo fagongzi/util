@@ -18,3 +18,8 @@ func (u *Uint64) Set(value uint64) {
 func (u *Uint64) Get() uint64 {
 	return atomic.LoadUint64(&u.value)
 }
+
+// Incr incr atomic uint64
+func (u *Uint64) Incr() uint64 {
+	return atomic.AddUint64(&u.value, 1)
+}

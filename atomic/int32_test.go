@@ -16,3 +16,14 @@ func TestInt32SetAndGet(t *testing.T) {
 			10)
 	}
 }
+
+func TestInt32Incr(t *testing.T) {
+	var v Int32
+
+	got := v.Incr()
+	if got != int32(1) {
+		t.Errorf("failed, got=<%d> expect=<%d>",
+			got,
+			10)
+	}
+}

@@ -16,3 +16,14 @@ func TestInt64SetAndGet(t *testing.T) {
 			10)
 	}
 }
+
+func TestInt64Incr(t *testing.T) {
+	var v Int64
+
+	got := v.Incr()
+	if got != int64(1) {
+		t.Errorf("failed, got=<%d> expect=<%d>",
+			got,
+			10)
+	}
+}
