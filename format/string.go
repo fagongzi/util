@@ -142,3 +142,8 @@ func ParseStrUInt64Slice(data []string) ([]uint64, error) {
 
 	return target, nil
 }
+
+// Float64ToString float64 to str
+func Float64ToString(v float64) []byte {
+	return strconv.AppendFloat(nil, v, 'f', -1, 64)
+}
