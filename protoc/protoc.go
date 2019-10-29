@@ -10,6 +10,7 @@ type PB interface {
 	Marshal() ([]byte, error)
 	MarshalTo(data []byte) (int, error)
 	Unmarshal(data []byte) error
+	Size() int
 }
 
 // MustUnmarshal if unmarshal failed, will panic
