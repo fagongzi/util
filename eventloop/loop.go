@@ -12,18 +12,25 @@ var (
 	// CloseType closed event type
 	CloseType = 0
 	// EndLoopType loop exit type
-	EndLoopType = math.MaxInt32
+	EndLoopType    = math.MaxInt32
+	preEndLoopType = math.MaxInt32 - 1
 
-	stateRunning = int32(0)
-	stateClosed  = int32(1)
-	closeEvent   = Event{}
-	endLoopEvent = Event{Type: EndLoopType}
+	stateRunning    = int32(0)
+	stateClosed     = int32(1)
+	closeEvent      = Event{}
+	endLoopEvent    = Event{Type: EndLoopType}
+	preEndLoopEvent = Event{Type: preEndLoopType}
 )
 
 var (
 	// ErrClosed closed error
 	ErrClosed = errors.New("event loop was closed")
 )
+
+// EventHandler
+type EventHandler interface {
+	HandleEvent(Event)
+}
 
 // Event event
 type Event struct {
@@ -39,28 +46,68 @@ type EventLooper interface {
 	Add(...Event) error
 }
 
+type consumer struct {
+	h                 EventHandler
+	l                 *looper
+	main              bool
+	closeEventHandled bool
+}
+
+func (c *consumer) Consume(lower, upper int64) {
+	var idx int64
+	addEndLoop := c.closeEventHandled
+	for i := lower; i <= upper; i++ {
+		idx = i & c.l.mask
+		et := c.l.rb[idx].Type
+		if et == preEndLoopType {
+			continue
+		} else if et == EndLoopType {
+			c.l.maybeDoClose()
+			c.h.HandleEvent(endLoopEvent)
+			return
+		}
+
+		c.h.HandleEvent(c.l.rb[idx])
+		if et == CloseType {
+			c.closeEventHandled = true
+			addEndLoop = true
+		}
+	}
+
+	if c.main && addEndLoop {
+		// loop was already closed in outside, so doAdd endLoopEvent must be the last event
+		if err := c.l.Add(preEndLoopEvent); err != nil {
+			c.l.doAdd(endLoopEvent)
+		}
+	}
+}
+
 // New returns a event loopper
-func New(capacity int64, cb func(Event)) EventLooper {
+func New(capacity int64, handlers ...EventHandler) EventLooper {
 	l := &looper{
-		rb:   make([]Event, capacity, capacity),
-		mask: capacity - 1,
-		cb:   cb,
+		rb:          make([]Event, capacity, capacity),
+		mask:        capacity - 1,
+		closedCount: int32(len(handlers)),
+	}
+
+	var consumers []dis.Consumer
+	for i, h := range handlers {
+		consumers = append(consumers, &consumer{l: l, h: h, main: i == 0})
 	}
 
 	l.disruptor = dis.New(dis.WithCapacity(capacity),
-		dis.WithConsumerGroup(l))
+		dis.WithConsumerGroup(consumers...))
 	go l.disruptor.Read()
 	return l
 }
 
 type looper struct {
-	state             int32
-	disruptor         dis.Disruptor
-	rb                []Event
-	cb                func(Event)
-	mask              int64
-	closeEventHandled bool
-	doEndLoop         bool
+	state       int32
+	disruptor   dis.Disruptor
+	rb          []Event
+	cb          func(Event)
+	mask        int64
+	closedCount int32
 }
 
 func (l *looper) Close() {
@@ -84,36 +131,9 @@ func (l *looper) Add(events ...Event) error {
 	return nil
 }
 
-func (l *looper) Consume(lower, upper int64) {
-	var idx int64
-	addEndLoop := l.closeEventHandled
-	for i := lower; i <= upper; i++ {
-		idx = i & l.mask
-
-		if l.rb[idx].Type == EndLoopType {
-			// not last event
-			if !l.doEndLoop {
-				continue
-			}
-
-			l.disruptor.Close()
-			l.cb(endLoopEvent)
-			return
-		}
-
-		l.cb(l.rb[idx])
-		if l.rb[idx].Type == CloseType {
-			l.closeEventHandled = true
-			addEndLoop = true
-		}
-	}
-
-	if addEndLoop {
-		// loop was already closed in outside, so doAdd endLoopEvent must be the last event
-		if err := l.Add(endLoopEvent); err != nil {
-			l.doEndLoop = true
-			l.doAdd(endLoopEvent)
-		}
+func (l *looper) maybeDoClose() {
+	if atomic.AddInt32(&l.closedCount, -1) == 0 {
+		l.disruptor.Close()
 	}
 }
 
