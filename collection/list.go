@@ -11,9 +11,9 @@ func Get(l *list.List, index int) *list.Element {
 	}
 
 	i := 0
-	for iter := l.Front(); iter != nil; iter = iter.Next() {
+	for e := l.Front(); e != nil; e = e.Next() {
 		if i == index {
-			return iter
+			return e
 		}
 
 		i++
@@ -38,17 +38,31 @@ func IndexOf(l *list.List, value interface{}) int {
 
 // Remove remove from list
 func Remove(l *list.List, value interface{}) {
-	var e *list.Element
-
-	for iter := l.Front(); iter != nil; iter = iter.Next() {
-		if iter.Value == value {
-			e = iter
+	var el *list.Element
+	for e := l.Front(); e != nil; e = e.Next() {
+		if e.Value == value {
+			el = e
 			break
 		}
 	}
 
-	if nil != e {
-		l.Remove(e)
+	if nil != el {
+		l.Remove(el)
+	}
+}
+
+// Iterate iterate list
+func Iterate(l *list.List, skip int, f func(interface{}) bool) {
+	skipped := 0
+	for e := l.Front(); e != nil; e = e.Next() {
+		if skipped < skip {
+			skipped++
+			continue
+		}
+
+		if !f(e.Value) {
+			return
+		}
 	}
 }
 
