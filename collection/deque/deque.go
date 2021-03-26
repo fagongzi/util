@@ -141,11 +141,27 @@ func (q *defaultDeque) Front() (*Element, bool) {
 	return q.root.next, true
 }
 
+func (q *defaultDeque) MustFront() *Element {
+	if q.len == 0 {
+		panic("MustFront on a empty deque")
+	}
+
+	return q.root.next
+}
+
 func (q *defaultDeque) Back() (*Element, bool) {
 	if q.len == 0 {
 		return nil, false
 	}
 	return q.root.prev, true
+}
+
+func (q *defaultDeque) MustBack() *Element {
+	if q.len == 0 {
+		panic("MustBack on a empty deque")
+	}
+
+	return q.root.prev
 }
 
 func (q *defaultDeque) PushFront(v interface{}) *Element {
