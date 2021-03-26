@@ -51,27 +51,6 @@ func Remove(l *list.List, value interface{}) {
 	}
 }
 
-// Truncate trancate list, keeping the first size elements
-func Truncate(l *list.List, size int) *list.List {
-	if size >= l.Len() {
-		return l
-	}
-
-	newL := list.New()
-	keeping := 0
-	for e := l.Front(); e != nil; e = e.Next() {
-		if keeping < size {
-			keeping++
-			newL.PushBack(e.Value)
-			continue
-		}
-
-		break
-	}
-
-	return newL
-}
-
 // Iterate iterate list
 func Iterate(l *list.List, skip int, f func(interface{}) bool) {
 	skipped := 0

@@ -7,23 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTruncate(t *testing.T) {
-	l := list.New()
-	for i := 0; i < 10; i++ {
-		l.PushBack(i)
-	}
-	l = Truncate(l, 9)
-	assert.Equal(t, 9, l.Len())
-	assert.Equal(t, 8, l.Back().Value)
-
-	l = list.New()
-	for i := 0; i < 10; i++ {
-		l.PushBack(i)
-	}
-	l = Truncate(l, 10)
-	assert.Equal(t, 10, l.Len())
-}
-
 func TestIterate(t *testing.T) {
 	l := list.New()
 	for i := 0; i < 10; i++ {
