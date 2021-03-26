@@ -2,6 +2,8 @@ package adjust
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInt(t *testing.T) {
@@ -182,4 +184,84 @@ func TestUInt64(t *testing.T) {
 	if got != value {
 		t.Errorf("failed, got=<%d> expect=<%d>", got, value)
 	}
+}
+
+func TestMaxInt(t *testing.T) {
+	assert.Equal(t, 2, MaxInt(1, 2))
+}
+
+func TestMaxInt8(t *testing.T) {
+	assert.Equal(t, int8(2), MaxInt8(1, 2))
+}
+
+func TestMaxInt16(t *testing.T) {
+	assert.Equal(t, int16(2), MaxInt16(1, 2))
+}
+
+func TestMaxInt32(t *testing.T) {
+	assert.Equal(t, int32(2), MaxInt32(1, 2))
+}
+
+func TestMaxInt64(t *testing.T) {
+	assert.Equal(t, int64(2), MaxInt64(1, 2))
+}
+
+func TestMaxUInt(t *testing.T) {
+	assert.Equal(t, uint(2), MaxUInt(1, 2))
+}
+
+func TestMaxUInt8(t *testing.T) {
+	assert.Equal(t, uint8(2), MaxUInt8(1, 2))
+}
+
+func TestMaxUInt16(t *testing.T) {
+	assert.Equal(t, uint16(2), MaxUInt16(1, 2))
+}
+
+func TestMaxUInt32(t *testing.T) {
+	assert.Equal(t, uint32(2), MaxUInt32(1, 2))
+}
+
+func TestMaxUInt64(t *testing.T) {
+	assert.Equal(t, uint64(2), MaxUInt64(1, 2))
+}
+
+func TestMinInt(t *testing.T) {
+	assert.Equal(t, 1, MinInt(1, 2))
+}
+
+func TestMinInt8(t *testing.T) {
+	assert.Equal(t, int8(1), MinInt8(1, 2))
+}
+
+func TestMinInt16(t *testing.T) {
+	assert.Equal(t, int16(1), MinInt16(1, 2))
+}
+
+func TestMinInt32(t *testing.T) {
+	assert.Equal(t, int32(1), MinInt32(1, 2))
+}
+
+func TestMinInt64(t *testing.T) {
+	assert.Equal(t, int64(1), MinInt64(1, 2))
+}
+
+func TestMinUInt(t *testing.T) {
+	assert.Equal(t, uint(1), MinUInt(1, 2))
+}
+
+func TestMinUInt8(t *testing.T) {
+	assert.Equal(t, uint8(1), MinUInt8(1, 2))
+}
+
+func TestMinUInt16(t *testing.T) {
+	assert.Equal(t, uint16(1), MinUInt16(1, 2))
+}
+
+func TestMinUInt32(t *testing.T) {
+	assert.Equal(t, uint32(1), MinUInt32(1, 2))
+}
+
+func TestMinUInt64(t *testing.T) {
+	assert.Equal(t, uint64(1), MinUInt64(1, 2))
 }
