@@ -11,8 +11,12 @@ type Deque interface {
 	ForEach(offset int, fn func(interface{}) bool)
 	// Front returns the first element of Deque, false if the list is empty.
 	Front() (*Element, bool)
+	// Front returns the first element of Deque, panic if the list is empty.
+	MustFront() *Element
 	// Back returns the last element of Deque, false if the list is empty.
 	Back() (*Element, bool)
+	// MustBack returns the last element of Deque, panic if the list is empty.
+	MustBack() *Element
 	// PushFront inserts a new element e with value v at the front of deque.
 	PushFront(v interface{}) *Element
 	// PushBack inserts a new element e with value v at the back of deque.
