@@ -1,4 +1,4 @@
-package Tuple
+package tuple
 
 // ByteTuple byte tuple
 type ByteTuple struct {
