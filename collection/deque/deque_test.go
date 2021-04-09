@@ -12,6 +12,25 @@ func TestPushBack(t *testing.T) {
 	assert.Equal(t, 1, q.Len())
 }
 
+func TestPopFront(t *testing.T) {
+	q := New()
+	q.PushBack(1)
+	q.PushBack(2)
+	v := q.PopFront()
+	assert.Equal(t, 1, v.Value)
+	assert.Equal(t, 2, q.MustFront().Value)
+}
+
+func TestPopBack(t *testing.T) {
+	q := New()
+	q.PushBack(1)
+	q.PushBack(2)
+	v := q.PopBack()
+	assert.Equal(t, 2, v.Value)
+	assert.Equal(t, 1, q.MustFront().Value)
+	assert.Equal(t, 1, q.MustBack().Value)
+}
+
 func TestTruncate(t *testing.T) {
 	q := New()
 	for i := 0; i < 10; i++ {
@@ -33,7 +52,7 @@ func TestTruncate(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = q.Back()
+	v, _ = q.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -63,7 +82,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = q.Back()
+	v, _ = q.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -77,7 +96,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = drained.Back()
+	v, _ = drained.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -100,7 +119,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, values[i], e.Value)
 		i++
 	}
-	v, ok = q.Back()
+	v, _ = q.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, values[i], e.Value)
@@ -114,7 +133,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = drained.Back()
+	v, _ = drained.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -135,7 +154,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = q.Back()
+	v, _ = q.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -149,7 +168,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = drained.Back()
+	v, _ = drained.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)
@@ -175,7 +194,7 @@ func TestDrain(t *testing.T) {
 		assert.Equal(t, i, e.Value)
 		i++
 	}
-	v, ok = drained.Back()
+	v, _ = drained.Back()
 	for e := v; e != nil; e = e.Prev() {
 		i--
 		assert.Equal(t, i, e.Value)

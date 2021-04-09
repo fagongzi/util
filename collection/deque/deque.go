@@ -11,10 +11,14 @@ type Deque interface {
 	ForEach(offset int, fn func(interface{}) bool)
 	// Front returns the first element of Deque, false if the list is empty.
 	Front() (*Element, bool)
+	// PopFront removes and returns the first element of Deque
+	PopFront() *Element
 	// Front returns the first element of Deque, panic if the list is empty.
 	MustFront() *Element
 	// Back returns the last element of Deque, false if the list is empty.
 	Back() (*Element, bool)
+	// PopBack removes and returns the last element of Deque
+	PopBack() *Element
 	// MustBack returns the last element of Deque, panic if the list is empty.
 	MustBack() *Element
 	// PushFront inserts a new element e with value v at the front of deque.
@@ -141,6 +145,14 @@ func (q *defaultDeque) Front() (*Element, bool) {
 	return q.root.next, true
 }
 
+func (q *defaultDeque) PopFront() *Element {
+	if q.len == 0 {
+		return nil
+	}
+
+	return q.remove(q.root.next)
+}
+
 func (q *defaultDeque) MustFront() *Element {
 	if q.len == 0 {
 		panic("MustFront on a empty deque")
@@ -154,6 +166,14 @@ func (q *defaultDeque) Back() (*Element, bool) {
 		return nil, false
 	}
 	return q.root.prev, true
+}
+
+func (q *defaultDeque) PopBack() *Element {
+	if q.len == 0 {
+		return nil
+	}
+
+	return q.remove(q.root.prev)
 }
 
 func (q *defaultDeque) MustBack() *Element {
