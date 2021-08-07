@@ -2,124 +2,74 @@ package format
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestParseStrInt64(t *testing.T) {
-	value := "10"
-	got, err := ParseStrInt64(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
+func TestParseStringBool(t *testing.T) {
+	got, err := ParseStringBool("true")
+	assert.NoError(t, err)
+	assert.True(t, got)
 
-	if got != 10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got, 10)
-	}
+	got, err = ParseStringBool("True")
+	assert.NoError(t, err)
+	assert.True(t, got)
+
+	got, err = ParseStringBool("True1")
+	assert.NoError(t, err)
+	assert.False(t, got)
 }
 
-func TestParseStrFloat64(t *testing.T) {
+func TestParseStringInt64(t *testing.T) {
+	value := "10"
+	got, err := ParseStringInt64(value)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(10), got)
+}
+
+func TestParseStringFloat64(t *testing.T) {
 	value := "10.10"
-	got, err := ParseStrFloat64(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
-
-	if got != 10.10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got, 10.10)
-	}
+	got, err := ParseStringFloat64(value)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(10.10), got)
 }
 
-func TestParseStrInt(t *testing.T) {
+func TestParseStringInt(t *testing.T) {
 	value := "10"
-	got, err := ParseStrInt(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
+	got, err := ParseStringInt(value)
+	assert.NoError(t, err)
+	assert.Equal(t, int(10), got)
+}
 
-	if got != 10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got, 10)
+func TestParseStringIntSlice(t *testing.T) {
+	value := []string{"10", "11", "12"}
+	expects := []int{10, 11, 12}
+	got, err := ParseStringIntSlice(value)
+	assert.NoError(t, err)
+	assert.Equal(t, len(value), len(got))
+	for idx, expect := range expects {
+		assert.Equal(t, expect, got[idx])
 	}
 }
 
-func TestParseStrIntSlice(t *testing.T) {
+func TestParseStringInt64Slice(t *testing.T) {
 	value := []string{"10", "11", "12"}
-	got, err := ParseStrIntSlice(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
-
-	if len(got) != len(value) {
-		t.Errorf("failed, got=<%d>, expect=<%d>", len(got), len(value))
-		return
-	}
-
-	if got[0] != 10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[0], 10)
-		return
-	}
-
-	if got[1] != 11 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
-	}
-
-	if got[2] != 12 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
+	expects := []int64{10, 11, 12}
+	got, err := ParseStringInt64Slice(value)
+	assert.NoError(t, err)
+	assert.Equal(t, len(value), len(got))
+	for idx, expect := range expects {
+		assert.Equal(t, expect, got[idx])
 	}
 }
 
-func TestParseStrInt64Slice(t *testing.T) {
+func TestParseStringUInt64Slice(t *testing.T) {
 	value := []string{"10", "11", "12"}
-	got, err := ParseStrInt64Slice(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
-
-	if len(got) != len(value) {
-		t.Errorf("failed, got=<%d>, expect=<%d>", len(got), len(value))
-		return
-	}
-
-	if got[0] != 10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[0], 10)
-		return
-	}
-
-	if got[1] != 11 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
-	}
-
-	if got[2] != 12 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
-	}
-}
-
-func TestParseStrUInt64Slice(t *testing.T) {
-	value := []string{"10", "11", "12"}
-	got, err := ParseStrUInt64Slice(value)
-	if err != nil {
-		t.Errorf("failed, errors:%+v", err)
-	}
-
-	if len(got) != len(value) {
-		t.Errorf("failed, got=<%d>, expect=<%d>", len(got), len(value))
-		return
-	}
-
-	if got[0] != 10 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[0], 10)
-		return
-	}
-
-	if got[1] != 11 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
-	}
-
-	if got[2] != 12 {
-		t.Errorf("failed, got=<%+v>, expect=<%+v>", got[1], 11)
-		return
+	expects := []uint64{10, 11, 12}
+	got, err := ParseStringUint64Slice(value)
+	assert.NoError(t, err)
+	assert.Equal(t, len(value), len(got))
+	for idx, expect := range expects {
+		assert.Equal(t, expect, got[idx])
 	}
 }
