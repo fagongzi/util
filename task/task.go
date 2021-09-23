@@ -185,6 +185,7 @@ type Runner struct {
 	cancels    map[uint64]context.CancelFunc
 	state      state
 	namedQueue map[string]*Queue
+	tasks      map[string]bool
 }
 
 // NewRunner returns a task runner
@@ -194,6 +195,7 @@ func NewRunner() *Runner {
 		state:      running,
 		namedQueue: make(map[string]*Queue),
 		cancels:    make(map[uint64]context.CancelFunc),
+		tasks:      make(map[string]bool),
 	}
 
 	t.AddNamedWorker(defaultQueueName, func() {})
@@ -229,7 +231,7 @@ func (s *Runner) IsNamedWorkerBusy(worker string) bool {
 }
 
 func (s *Runner) startWorkerLocked(ctx context.Context, name string, q *Queue, stopped func()) {
-	s.doRunCancelableTaskLocked(ctx, func(ctx context.Context) {
+	s.doRunCancelableTaskLocked(ctx, name, func(ctx context.Context) {
 		jobs := make([]interface{}, batch)
 		if stopped != nil {
 			defer stopped()
@@ -330,7 +332,7 @@ func (s *Runner) RunJobWithNamedWorkerWithCB(desc, worker string, task func() er
 // 	// hanle error
 // 	return
 // }
-func (s *Runner) RunCancelableTask(task func(context.Context)) (uint64, error) {
+func (s *Runner) RunCancelableTask(name string, task func(context.Context)) (uint64, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -339,7 +341,7 @@ func (s *Runner) RunCancelableTask(task func(context.Context)) (uint64, error) {
 	}
 
 	id, ctx := s.allocCtxLocked()
-	s.doRunCancelableTaskLocked(ctx, task)
+	s.doRunCancelableTaskLocked(ctx, name, task)
 	return id, nil
 }
 
@@ -400,10 +402,9 @@ func (s *Runner) Stop() ([]string, error) {
 
 func (s *Runner) doStop(timeout time.Duration) ([]string, error) {
 	s.Lock()
-	defer s.Unlock()
-
 	if s.state == stopping ||
 		s.state == stopped {
+		s.Unlock()
 		return nil, errors.New("stopper is already stoppped")
 	}
 	s.state = stopping
@@ -411,6 +412,7 @@ func (s *Runner) doStop(timeout time.Duration) ([]string, error) {
 	for _, cancel := range s.cancels {
 		cancel()
 	}
+	s.Unlock()
 
 	go func() {
 		s.stop.Wait()
@@ -419,9 +421,11 @@ func (s *Runner) doStop(timeout time.Duration) ([]string, error) {
 
 	select {
 	case <-time.After(timeout):
+		s.Lock()
+		defer s.Unlock()
 		var timeoutWorkers []string
-		for name, q := range s.namedQueue {
-			if !q.Disposed() {
+		for name, run := range s.tasks {
+			if run {
 				timeoutWorkers = append(timeoutWorkers, name)
 			}
 		}
@@ -429,16 +433,22 @@ func (s *Runner) doStop(timeout time.Duration) ([]string, error) {
 	case <-s.stopC:
 	}
 
+	s.Lock()
+	defer s.Unlock()
 	s.state = stopped
 	return nil, nil
 }
 
-func (s *Runner) doRunCancelableTaskLocked(ctx context.Context, task func(context.Context)) {
+func (s *Runner) doRunCancelableTaskLocked(ctx context.Context, name string, task func(context.Context)) {
+	s.tasks[name] = true
 	go func() {
 		if err := recover(); err != nil {
 			panic(err)
 		}
-		defer s.stop.Done()
+		defer func() {
+			s.stop.Done()
+			s.tasks[name] = false
+		}()
 		task(ctx)
 	}()
 }

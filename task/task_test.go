@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -58,7 +59,7 @@ func TestTask(t *testing.T) {
 
 	result := false
 
-	_, err = runner.RunCancelableTask(func(c context.Context) {
+	_, err = runner.RunCancelableTask("1", func(c context.Context) {
 		select {
 		case <-c.Done():
 			result = true
@@ -124,7 +125,7 @@ func TestStopWithID(t *testing.T) {
 	start := make(chan struct{}, 1)
 	defer close(start)
 
-	id, err := runner.RunCancelableTask(func(c context.Context) {
+	id, err := runner.RunCancelableTask("1", func(c context.Context) {
 		select {
 		case <-c.Done():
 			result = true
@@ -144,7 +145,7 @@ func TestStopWithID(t *testing.T) {
 	}
 
 	for index := 0; index < 10; index++ {
-		runner.RunCancelableTask(func(c context.Context) {
+		runner.RunCancelableTask(fmt.Sprintf("w-%d", index), func(c context.Context) {
 			select {
 			case <-c.Done():
 				result = true
@@ -178,7 +179,7 @@ func TestStopWithTimeoutWorkers(t *testing.T) {
 	assert.NoError(t, err)
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 	runner.RunJobWithNamedWorker("", "w-0", func() error {
 		wg.Done()
 		time.Sleep(time.Second * 10)
@@ -193,12 +194,17 @@ func TestStopWithTimeoutWorkers(t *testing.T) {
 		wg.Done()
 		return nil
 	})
+	runner.RunCancelableTask("w-3", func(ctx context.Context) {
+		wg.Done()
+		time.Sleep(time.Second * 10)
+	})
 
 	wg.Wait()
 	timeoutWorkers, err := runner.doStop(time.Second)
 	assert.Error(t, err)
-	assert.Equal(t, 2, len(timeoutWorkers))
+	assert.Equal(t, 3, len(timeoutWorkers))
 	sort.Strings(timeoutWorkers)
 	assert.Equal(t, "w-0", timeoutWorkers[0])
 	assert.Equal(t, "w-1", timeoutWorkers[1])
+	assert.Equal(t, "w-3", timeoutWorkers[2])
 }
