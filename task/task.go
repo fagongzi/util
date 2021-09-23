@@ -447,7 +447,9 @@ func (s *Runner) doRunCancelableTaskLocked(ctx context.Context, name string, tas
 		}
 		defer func() {
 			s.stop.Done()
+			s.Lock()
 			s.tasks[name] = false
+			s.Unlock()
 		}()
 		task(ctx)
 	}()
