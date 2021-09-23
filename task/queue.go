@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"runtime"
 	"sync"
@@ -102,6 +103,7 @@ type Queue struct {
 	items    items
 	lock     sync.Mutex
 	disposed bool
+	ctx      context.Context
 }
 
 // Put will add the specified items to the queue.
@@ -221,6 +223,9 @@ func (q *Queue) Poll(number int64, items []interface{}, timeout time.Duration) (
 			timeoutC = time.After(timeout)
 		}
 		select {
+		case <-q.ctx.Done():
+			q.Dispose()
+			return 0, ErrDisposed
 		case <-sema.ready:
 			// we are now inside the put's lock
 			if q.disposed {
@@ -248,7 +253,13 @@ func (q *Queue) Poll(number int64, items []interface{}, timeout time.Duration) (
 
 	c := q.items.get(number, items)
 	q.lock.Unlock()
-	return c, nil
+
+	select {
+	case <-q.ctx.Done():
+		return 0, ErrDisposed
+	default:
+		return c, nil
+	}
 }
 
 // Peek returns a the first item in the queue by value
@@ -301,6 +312,10 @@ func (q *Queue) Dispose() []interface{} {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
+	if q.disposed {
+		return nil
+	}
+
 	q.disposed = true
 	for _, waiter := range q.waiters {
 		waiter.response.Add(1)
@@ -322,8 +337,14 @@ func (q *Queue) Dispose() []interface{} {
 
 // New is a constructor for a new threadsafe queue.
 func New(hint int64) *Queue {
+	return NewWithContext(hint, context.Background())
+}
+
+// NewWithContext is a constructor for a new threadsafe queue.
+func NewWithContext(hint int64, ctx context.Context) *Queue {
 	return &Queue{
 		items: make([]interface{}, 0, hint),
+		ctx:   ctx,
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	errUnavailable = errors.New("Stopper is unavailable")
+	errUnavailable = errors.New("runner is unavailable")
 )
 
 var (
@@ -175,14 +175,6 @@ func (job *Job) setState(state JobState) {
 	job.state = state
 }
 
-func (job *Job) getState() JobState {
-	job.RLock()
-	s := job.state
-	job.RUnlock()
-
-	return s
-}
-
 // Runner TODO
 type Runner struct {
 	sync.RWMutex
@@ -204,21 +196,28 @@ func NewRunner() *Runner {
 		cancels:    make(map[uint64]context.CancelFunc),
 	}
 
-	t.AddNamedWorker(defaultQueueName)
+	t.AddNamedWorker(defaultQueueName, func() {})
 	return t
 }
 
 // AddNamedWorker add a named worker, the named worker has uniq queue, so jobs are linear execution
-func (s *Runner) AddNamedWorker(name string) (uint64, error) {
+func (s *Runner) AddNamedWorker(name string, stopped func()) (uint64, error) {
 	s.Lock()
-	q, ok := s.namedQueue[name]
-	if !ok {
-		q = &Queue{}
-		s.namedQueue[name] = q
-	}
-	s.Unlock()
+	defer s.Unlock()
 
-	return s.startWorker(name, q)
+	if s.state != running {
+		return 0, errUnavailable
+	}
+
+	if _, ok := s.namedQueue[name]; ok {
+		return 0, fmt.Errorf("%s worker already added", name)
+	}
+
+	id, ctx := s.allocCtxLocked()
+	q := NewWithContext(128, ctx)
+	s.namedQueue[name] = q
+	s.startWorkerLocked(ctx, name, q, stopped)
+	return id, nil
 }
 
 // IsNamedWorkerBusy returns true if named queue is not empty
@@ -226,12 +225,15 @@ func (s *Runner) IsNamedWorkerBusy(worker string) bool {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.getNamedQueue(worker).Len() > 0
+	return s.getNamedQueueLocked(worker).Len() > 0
 }
 
-func (s *Runner) startWorker(name string, q *Queue) (uint64, error) {
-	return s.RunCancelableTask(func(ctx context.Context) {
-		jobs := make([]interface{}, batch, batch)
+func (s *Runner) startWorkerLocked(ctx context.Context, name string, q *Queue, stopped func()) {
+	s.doRunCancelableTaskLocked(ctx, func(ctx context.Context) {
+		jobs := make([]interface{}, batch)
+		if stopped != nil {
+			defer stopped()
+		}
 
 		for {
 			n, err := q.Get(batch, jobs)
@@ -297,7 +299,7 @@ func (s *Runner) RunJobWithNamedWorkerWithCB(desc, worker string, task func() er
 	}
 
 	job := newJob(desc, task)
-	q := s.getNamedQueue(worker)
+	q := s.getNamedQueueLocked(worker)
 	if q == nil {
 		s.Unlock()
 		return fmt.Errorf("named worker %s is not exists", worker)
@@ -336,20 +338,8 @@ func (s *Runner) RunCancelableTask(task func(context.Context)) (uint64, error) {
 		return 0, errUnavailable
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	s.lastID++
-	id := s.lastID
-	s.cancels[id] = cancel
-	s.stop.Add(1)
-
-	go func() {
-		if err := recover(); err != nil {
-			panic(err)
-		}
-		defer s.stop.Done()
-		task(ctx)
-	}()
-
+	id, ctx := s.allocCtxLocked()
+	s.doRunCancelableTaskLocked(ctx, task)
 	return id, nil
 }
 
@@ -429,10 +419,25 @@ func (s *Runner) Stop() error {
 	return nil
 }
 
-func (s *Runner) getDefaultQueue() *Queue {
-	return s.getNamedQueue(defaultQueueName)
+func (s *Runner) doRunCancelableTaskLocked(ctx context.Context, task func(context.Context)) {
+	go func() {
+		if err := recover(); err != nil {
+			panic(err)
+		}
+		defer s.stop.Done()
+		task(ctx)
+	}()
 }
 
-func (s *Runner) getNamedQueue(name string) *Queue {
+func (s *Runner) getNamedQueueLocked(name string) *Queue {
 	return s.namedQueue[name]
+}
+
+func (s *Runner) allocCtxLocked() (uint64, context.Context) {
+	ctx, cancel := context.WithCancel(context.Background())
+	s.lastID++
+	id := s.lastID
+	s.cancels[id] = cancel
+	s.stop.Add(1)
+	return id, ctx
 }

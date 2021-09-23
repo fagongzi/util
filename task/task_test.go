@@ -27,7 +27,7 @@ func TestTask(t *testing.T) {
 		t.Error("run task failed, task not run after 50ms")
 	}
 
-	runner.AddNamedWorker("name-0")
+	runner.AddNamedWorker("name-0", func() {})
 	yes := false
 	var ok int32
 	complete := make(chan struct{}, 1)
@@ -84,7 +84,7 @@ func TestTask(t *testing.T) {
 
 func TestNamedTask(t *testing.T) {
 	runner := NewRunner()
-	runner.AddNamedWorker("apply")
+	runner.AddNamedWorker("apply", func() {})
 
 	cnt := 0
 	complete := make(chan struct{}, 1)
