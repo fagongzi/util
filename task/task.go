@@ -386,22 +386,30 @@ func (s *Runner) StopCancelableTask(id uint64) error {
 // RunTask will failure with an error
 // Wait complete for the tasks that already in execute
 // Cancel the tasks that is not start
-func (s *Runner) Stop() error {
+func (s *Runner) StopWithTimeout(timeout time.Duration) ([]string, error) {
+	return s.doStop(timeout)
+}
+
+// Stop stop all task
+// RunTask will failure with an error
+// Wait complete for the tasks that already in execute
+// Cancel the tasks that is not start
+func (s *Runner) Stop() ([]string, error) {
+	return s.doStop(defaultWaitStoppedTimeout)
+}
+
+func (s *Runner) doStop(timeout time.Duration) ([]string, error) {
 	s.Lock()
 	defer s.Unlock()
 
 	if s.state == stopping ||
 		s.state == stopped {
-		return errors.New("stopper is already stoppped")
+		return nil, errors.New("stopper is already stoppped")
 	}
 	s.state = stopping
 
 	for _, cancel := range s.cancels {
 		cancel()
-	}
-
-	for _, q := range s.namedQueue {
-		q.Dispose()
 	}
 
 	go func() {
@@ -410,13 +418,19 @@ func (s *Runner) Stop() error {
 	}()
 
 	select {
-	case <-time.After(defaultWaitStoppedTimeout):
-		return errors.New("waitting for task complete timeout")
+	case <-time.After(timeout):
+		var timeoutWorkers []string
+		for name, q := range s.namedQueue {
+			if !q.Disposed() {
+				timeoutWorkers = append(timeoutWorkers, name)
+			}
+		}
+		return timeoutWorkers, errors.New("waitting for task complete timeout")
 	case <-s.stopC:
 	}
 
 	s.state = stopped
-	return nil
+	return nil, nil
 }
 
 func (s *Runner) doRunCancelableTaskLocked(ctx context.Context, task func(context.Context)) {

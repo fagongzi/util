@@ -2,9 +2,13 @@ package task
 
 import (
 	"context"
+	"sort"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTask(t *testing.T) {
@@ -69,7 +73,7 @@ func TestTask(t *testing.T) {
 	}
 
 	defaultWaitStoppedTimeout = time.Second
-	err = runner.Stop()
+	_, err = runner.Stop()
 	if err != nil {
 		t.Error("stop runner failed, return a error", err)
 		return
@@ -151,7 +155,7 @@ func TestStopWithID(t *testing.T) {
 	}
 
 	defaultWaitStoppedTimeout = time.Second
-	err = runner.Stop()
+	_, err = runner.Stop()
 	if err != nil {
 		t.Error("stop runner failed, return a error", err)
 		return
@@ -162,4 +166,39 @@ func TestStopWithID(t *testing.T) {
 		t.Error("cancelable task excuted after stop")
 		return
 	}
+}
+
+func TestStopWithTimeoutWorkers(t *testing.T) {
+	runner := NewRunner()
+	_, err := runner.AddNamedWorker("w-0", nil)
+	assert.NoError(t, err)
+	_, err = runner.AddNamedWorker("w-1", nil)
+	assert.NoError(t, err)
+	_, err = runner.AddNamedWorker("w-2", nil)
+	assert.NoError(t, err)
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+	runner.RunJobWithNamedWorker("", "w-0", func() error {
+		wg.Done()
+		time.Sleep(time.Second * 10)
+		return nil
+	})
+	runner.RunJobWithNamedWorker("", "w-1", func() error {
+		wg.Done()
+		time.Sleep(time.Second * 10)
+		return nil
+	})
+	runner.RunJobWithNamedWorker("", "w-2", func() error {
+		wg.Done()
+		return nil
+	})
+
+	wg.Wait()
+	timeoutWorkers, err := runner.doStop(time.Second)
+	assert.Error(t, err)
+	assert.Equal(t, 2, len(timeoutWorkers))
+	sort.Strings(timeoutWorkers)
+	assert.Equal(t, "w-0", timeoutWorkers[0])
+	assert.Equal(t, "w-1", timeoutWorkers[1])
 }
